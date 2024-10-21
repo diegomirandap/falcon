@@ -16,11 +16,12 @@ from __future__ import annotations
 import abc
 from datetime import datetime
 from math import isfinite
-from typing import Any, ClassVar, Iterable, Optional, overload, Union
+from typing import Any, ClassVar, Iterable, List, Optional, overload, Union
 import uuid
 
 __all__ = (
     'BaseConverter',
+    'BaseConverterMultipleSegments',
     'DateTimeConverter',
     'FloatConverter',
     'IntConverter',
@@ -34,25 +35,16 @@ strptime = datetime.strptime
 
 
 class BaseConverter(metaclass=abc.ABCMeta):
-    """Abstract base class for URI template field converters."""
+    """Abstract base class for URI template field converters that consume a single segment."""
 
     CONSUME_MULTIPLE_SEGMENTS: ClassVar[bool] = False
-    """When set to ``True`` it indicates that this converter will consume
-    multiple URL path segments. Currently a converter with
-    ``CONSUME_MULTIPLE_SEGMENTS=True`` must be at the end of the URL template
-    effectively meaning that it will consume all of the remaining URL path
-    segments.
-    """
 
     @abc.abstractmethod
     def convert(self, value: str) -> Any:
         """Convert a URI template field value to another format or type.
 
         Args:
-            value (str or List[str]): Original string to convert.
-                If ``CONSUME_MULTIPLE_SEGMENTS=True`` this value is a
-                list of strings containing the path segments matched by
-                the converter.
+            value (str): Original string to convert.
 
         Returns:
             object: Converted field value, or ``None`` if the field
@@ -60,8 +52,21 @@ class BaseConverter(metaclass=abc.ABCMeta):
         """
 
 
-def _consumes_multiple_segments(converter: object) -> bool:
-    return getattr(converter, 'CONSUME_MULTIPLE_SEGMENTS', False)
+class BaseConverterMultipleSegment(BaseConverter):
+    """A URI template field converter that consumes multiple URL path segments."""
+
+    CONSUME_MULTIPLE_SEGMENTS: ClassVar[bool] = True
+
+    def convert(self, value: List[str]) -> Any:
+        """Convert multiple URI template field values (path segments).
+
+        Args:
+            value (List[str]): List of path segments to convert.
+
+        Returns:
+            object: Converted field value, or ``None`` if the field
+                can not be converted.
+        """
 
 
 class IntConverter(BaseConverter):

@@ -105,7 +105,7 @@ class CompiledRouter:
 
     def __init__(self) -> None:
         self._ast: _CxParent = _CxParent()
-        self._converters: List[converters.BaseConverter] = []
+        self._converters: List[Union[converters.BaseConverter, converters.BaseConverterMultipleSegment]] = []
         self._finder_src: str = ''
 
         self._options = CompiledRouterOptions()
@@ -231,9 +231,7 @@ class CompiledRouter:
             value = [
                 (field, converter)
                 for field, converter, _ in node.var_converter_map
-                if converters._consumes_multiple_segments(
-                    self._converter_map[converter]
-                )
+                if isinstance(self._converter_map[converter], converters.BaseConverterMultipleSegment)
             ]
             if value:
                 return value[0]
@@ -525,7 +523,7 @@ class CompiledRouter:
                         )
                         converter_idx = len(self._converters)
                         self._converters.append(converter_obj)
-                        if converters._consumes_multiple_segments(converter_obj):
+                        if isinstance(converter_obj, converters.BaseConverterMultipleSegment):
                             consume_multiple_segments = True
                             parent.append_child(_CxSetFragmentFromRemainingPaths(level))
                         else:
@@ -619,7 +617,7 @@ class CompiledRouter:
         # a series of nested "if" constructs.
         for field_name, converter_name, converter_argstr in node.var_converter_map:
             converter_class = self._converter_map[converter_name]
-            assert not converters._consumes_multiple_segments(converter_class)
+            assert not isinstance(converter_class, converters.BaseConverterMultipleSegment)
 
             converter_obj = self._instantiate_converter(
                 converter_class, converter_argstr
