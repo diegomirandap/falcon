@@ -304,8 +304,8 @@ class Request:
         self._cached_forwarded: Optional[List[Forwarded]] = None
         self._cached_forwarded_prefix: Optional[str] = None
         self._cached_forwarded_uri: Optional[str] = None
-        self._cached_headers: Optional[Dict[str, str]] = None
-        self._cached_headers_lower: Optional[Dict[str, str]] = None
+        self._cached_headers: Optional[List[Tuple[str, str]]] = None
+        self._cached_headers_lower: Optional[List[Tuple[str, str]]] = None
         self._cached_prefix: Optional[str] = None
         self._cached_relative_uri: Optional[str] = None
         self._cached_uri: Optional[str] = None
@@ -882,19 +882,21 @@ class Request:
             convenience attributes to get a value for a specific header.
         """  # noqa: D205
         if self._cached_headers is None:
-            headers = self._cached_headers = {}
+            headers = self._cached_headers = []
 
             for name, value in self.env.items():
                 if name.startswith('HTTP_'):
                     # NOTE(kgriffs): Don't take the time to fix the case
                     # since headers are supposed to be case-insensitive
                     # anyway.
-                    headers[name[5:].replace('_', '-')] = value
+                    normalized_name = name[5:].replace('_', '-')
+                    headers.append((normalized_name, value))
 
                 elif name in WSGI_CONTENT_HEADERS:
-                    headers[name.replace('_', '-')] = value
+                    normalized_name = name.replace('_', '-')
+                    headers.append((normalized_name, value))
 
-        return self._cached_headers
+        return dict(self._cached_headers)
 
     @property
     def headers_lower(self) -> Mapping[str, str]:
